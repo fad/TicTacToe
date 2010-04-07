@@ -11,17 +11,17 @@ package
 	{	
 		protected var log:LogManager = LogManager.GetLogger();
 		
-		private var boardTiles = new Array();
-		private var _playField:Widget;
-		private var _genericMessagePanel:GenericMessagePanel;
-		private var _joiningPanel:JoiningPanel;
-		private var _startGamePanel:StartGamePanel;
-		private var _blockMask;
-		private var _restartBtn;
-		private var _menuPanel;
-		private var _scoreTF;
-		private var _tileSize = 120;
-		var _model;
+		public var _boardTiles = new Array();
+		public var _playField:Widget;
+		public var _genericMessagePanel:GenericMessagePanel;
+		public var _joiningPanel:JoiningPanel;
+		public var _startGamePanel:StartGamePanel;
+		public var _blockMask;
+		public var _restartBtn;
+		public var _menuPanel;
+		public var _scoreTF;
+		public var _tileSize = 120;
+		public var _model;
 		
 		public function SimpleView(model)
 		{
@@ -86,12 +86,12 @@ package
 			_restartBtn.addEventListener(MouseEvent.CLICK, restartBtnClickHandler, false, 0, true);
 		}
 
-		private function createBoard(container, tileSize = 100, borderSize = 0)
+		public function createBoard(container, tileSize = 100, borderSize = 0)
 		{
 			for (var i:int = 0; i < 3; i++)
 			{
 				var a = new Array();
-				boardTiles.push(a);
+				_boardTiles.push(a);
 
 				for (var j:int = 0; j < 3; j++)
 				{
@@ -124,8 +124,7 @@ package
 			container.visible = false;
 		}
 
-	
-		function init()
+		public function init()
 		{
 			_startGamePanel.visible = false;
 			_genericMessagePanel.visible = false;
@@ -134,32 +133,32 @@ package
 			_restartBtn.visible = false;
 		}
 
-		 function displayMessage(m)
+		public function displayMessage(m)
 		{
 			_genericMessagePanel.messageTF.text = m;
 			_genericMessagePanel.show();
 		}
 
-		 function restartBtnClickHandler(e:MouseEvent)
+		public function restartBtnClickHandler(e:MouseEvent)
 		{
 			_model.restartGame();
 			_model.sendMessage("restart");
 		}
 	
-		function startGame(block)
+		public function startGame(block)
 		{
 			_playField.visible = true;			
 			if (block)
 				toggleState();
 		}
 
-		function cleanBoard()
+		public function cleanBoard()
 		{
 			for (var i:int = 0; i < 3; i++)
 			{
 				for (var j:int = 0; j < 3; j++)
 				{
-					boardTiles[i][j].visible = true;
+					_boardTiles[i][j].visible = true;
 					var c = _playField.getChildByName("c" + i.toString() + j.toString());
 					log.debug("i="+i+" j="+j+" child:"+c);
 					if (c != null)
@@ -168,14 +167,14 @@ package
 			}
 		}
 
-		function startGameClickHandler(e:MouseEvent)
+		public function startGameClickHandler(e:MouseEvent)
 		{
 		//	_blockAtStart = false;
 			_startGamePanel.show();
 			_model.startAsServer();
 		}
 		
-		function joinGameClickHandler(e:MouseEvent)
+		public function joinGameClickHandler(e:MouseEvent)
 		{
 			_joiningPanel.visible = true;
 			stage.focus = _joiningPanel.keyTF;
@@ -184,45 +183,45 @@ package
 			_model.joinGame();
 		}
 		
-		function okBtnClickHandler(e:MouseEvent)
+		public function okBtnClickHandler(e:MouseEvent)
 		{
 			log.info(_joiningPanel.keyTF.text);
 			_model.setupIncomingStream(_joiningPanel.keyTF.text);
 		}
 
-		function joiningCloseBtnClickHandler(e:MouseEvent)
+		public function joiningCloseBtnClickHandler(e:MouseEvent)
 		{
 			_joiningPanel.hide();
 		}
 
-		function startGamePanelCloseBtnClickHandler(e:MouseEvent)
+		public function startGamePanelCloseBtnClickHandler(e:MouseEvent)
 		{
 			_startGamePanel.hide();
 		}
 
-		function boardClickHandler(e:MouseEvent)
+		public function boardClickHandler(e:MouseEvent)
 		{
 			//e.target.visible = false;
 			_model.makeMove(e.target.name);
 		}
 
-		function displayId(id)
+		public function displayId(id)
 		{
 			_startGamePanel.keyTF.text = id;
 			stage.focus = _startGamePanel.keyTF;
 			_startGamePanel.keyTF.setSelection( 0, _startGamePanel.keyTF.text.length);
 		}
 	
-		function showPlayField()
+		public function showPlayField()
 		{
 			_startGamePanel.visible = false;
 			_joiningPanel.visible = false;
 			_menuPanel.visible = false;
 		}
 		
-		function setTile(col, row, byMyself)
+		public function setTile(col, row, byMyself)
 		{
-			var tile = boardTiles[col][row];
+			var tile = _boardTiles[col][row];
 			log.info("tile="+tile);
 			tile.visible = false;
 			log.info("_playerId="+_model._playerId+" byMyself="+byMyself);
@@ -242,7 +241,7 @@ package
 			toggleState();
 		}
 
-		function toggleState()
+		public function toggleState()
 		{
 			_blockMask.visible = !_blockMask.visible;
 			log.info("_blockMask.visible = "+_blockMask.visible);
@@ -250,14 +249,14 @@ package
 			_genericMessagePanel.visible = _blockMask.visible;
 		}
 		
-		function onGameOver()
+		public function onGameOver()
 		{
 			_blockMask.visible = true;
 			_restartBtn.visible = true;
 			displayScore(_model._numberOfVictories, _model._numberOfDefeats);
 		}
 		
-		function displayScore(v, d)
+		public function displayScore(v, d)
 		{
 			_scoreTF.text = v.toString()+":"+d.toString();
 		}

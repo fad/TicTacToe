@@ -1,16 +1,14 @@
 package 
 {
-	import flash.display.*;
-	import flash.text.TextField;
-	import flash.net.*;
-	import flash.events.*;
-	import flash.utils.setTimeout;
-
 	import com.arkavis.log4as.*;
 	import com.arkavis.ui.*;
-	import com.arkavis.Console;
+	
+	import flash.display.*;
+	import flash.events.*;
+	import flash.net.*;
+	import flash.utils.setTimeout;
 
-	public class TicTacToe extends Sprite
+	public class TicTacToe extends EventDispatcher
 	{
 		protected var log:LogManager = LogManager.GetLogger();
 
@@ -31,26 +29,9 @@ package
 
 		public function TicTacToe()
 		{
-			_view = new SimpleView(this);
-			addChild(_view); //needed for the console beeing on top of everything
-			_view.buildUI();
-			
-			var consoleConfig = {width:stage.stageWidth,height:150,color:0x111111,fontColor:0xFFFFFF,fontSize:14};
-			var _console:Console = new Console(consoleConfig);
-			_console.setSystem(this);
-			addChild(_console);
-			_console.hide();
-
-			LogManager.LogLevel = LogManager.LogLevels.DEBUG;
-			LogManager.addLogger(new TraceLogger());
-			LogManager.addLogger(_console);
-			log.info("initializing game");
-
-			//_view.Constructor();
-			init();
 		}
 		
-		private function init()
+		public function init()
 		{
 			_view.init();
 			_movesMade = 0;
