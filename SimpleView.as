@@ -26,7 +26,7 @@ package
 		
 		public function SimpleView(model)
 		{
-			log.info("initializing view - model="+model);
+			log.info("initializing view - model = "+model);
 			_model = model;
 			_model.addEventListener(TicTacToe.GAME_OVER, onGameOver);
 			_model.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
@@ -36,6 +36,8 @@ package
 			_model.addEventListener(TicTacToe.READY, onReady);
 			super();
 		}
+		
+		// event handling
 		
 		private function onGameOver(e:GameOverEvent)
 		{	
@@ -69,7 +71,7 @@ package
 		
 		private function onMoveMade(e:MoveMadeEvent)
 		{
-			this.setTile(e.column, e.row, e.byMyself);		
+			setTile(e.column, e.row, e.byMyself);		
 		}
 		
 		private function onStart(e:StartEvent)
@@ -80,12 +82,29 @@ package
 		
 		private function onReady(e:Event)
 		{
-			this.showPlayField();
+			showPlayField();
 		}
 		
 		private function onRestart(e:Event)
 		{
-			this.cleanBoard();
+			cleanBoard();
+		}
+		
+		private function okBtnClickHandler(e:MouseEvent)
+		{
+			log.info(_joiningPanel.keyTF.text);
+			_model.setupIncomingStream(_joiningPanel.keyTF.text);
+		}
+		
+		//public methods
+		
+		public function init()
+		{
+			_startGamePanel.visible = false;
+			_genericMessagePanel.visible = false;
+			_joiningPanel.visible = false;
+			_blockMask.visible = false;
+			_restartBtn.visible = false;
 		}
 		
 		public function buildUI()
@@ -95,31 +114,31 @@ package
 				
 			_playField = new Widget();
 			createBoard(_playField,_tileSize,0);
-			this.addChild(_playField);
+			addChild(_playField);
 			_playField.setPosition(StagePositions.CENTER);
 		
 			_menuPanel = new MenuPanel();
-			this.addChild(_menuPanel);
+			addChild(_menuPanel);
 			_menuPanel.setPosition(StagePositions.CENTER);
 			
 			_genericMessagePanel = new GenericMessagePanel();
-			this.addChild(_genericMessagePanel);
+			addChild(_genericMessagePanel);
 			_genericMessagePanel.setPosition(StagePositions.CENTER);
 			
 			_startGamePanel = new StartGamePanel();
-			this.addChild(_startGamePanel);
+			addChild(_startGamePanel);
 			_startGamePanel.setPosition(StagePositions.CENTER);
 			
 			_joiningPanel = new JoiningPanel();
 			_joiningPanel.keyTF.text = "";
-			this.addChild(_joiningPanel);
+			addChild(_joiningPanel);
 			_joiningPanel.setPosition(StagePositions.CENTER);
 			
 			_scoreTF = new TextField();
 			_scoreTF.x = 300;
 			_scoreTF.y = 10;
 			_scoreTF.text = "0:0";
-			this.addChild(_scoreTF);
+			addChild(_scoreTF);
 			//_scoreTF.setPosition(StagePositions.CENTER_TOP);
 		
 			_blockMask = new MovieClip();
@@ -127,13 +146,13 @@ package
 			_blockMask.graphics.drawRect(0, 0, stage.stageWidth,stage.stageHeight);
 			_blockMask.graphics.endFill();
 			_blockMask.alpha = 0;
-			this.addChild(_blockMask);
+			addChild(_blockMask);
 			//_blockMask.setPosition(StagePositions.CENTER);
 			
 			_restartBtn = new RestartButton();
 			_restartBtn.x = 400;
 			_restartBtn.y = 400;
-			this.addChild(_restartBtn);
+			addChild(_restartBtn);
 			//_restartBtn.setPosition(StagePositions.CENTER);
 			
 			_menuPanel.startGameBtn.addEventListener(MouseEvent.CLICK, startGameClickHandler, false, 0, true);
@@ -143,8 +162,10 @@ package
 			_startGamePanel.closeBtn.addEventListener(MouseEvent.CLICK, startGamePanelCloseBtnClickHandler, false, 0, true);
 			_restartBtn.addEventListener(MouseEvent.CLICK, restartBtnClickHandler, false, 0, true);
 		}
+		
+		//private methods
 
-		public function createBoard(container, tileSize = 100, borderSize = 0)
+		private function createBoard(container, tileSize = 100, borderSize = 0)
 		{
 			for (var i:int = 0; i < 3; i++)
 			{
@@ -158,7 +179,7 @@ package
 					tile.height = _tileSize;
 					tile.x = i * tile.width;
 					tile.y = j * tile.height;
-					log.info("tile.x="+tile.x);
+					log.info("tile.x = "+tile.x);
 					container.addChild(tile);
 					tile.name = "t" + j.toString() + i.toString();
 					tile.addEventListener(MouseEvent.CLICK, boardClickHandler, false, 0, true);
@@ -167,7 +188,7 @@ package
 			}
 			
 			var board:MovieClip = new MovieClip();
-			board.graphics.lineStyle(1);
+			board.graphics.lineStyle(3);
 			board.graphics.moveTo(borderSize+tileSize,borderSize);
 			board.graphics.lineTo(borderSize+tileSize, borderSize+tileSize*3);
 			board.graphics.moveTo(borderSize+2*tileSize,borderSize);
@@ -182,37 +203,28 @@ package
 			container.visible = false;
 		}
 
-		public function init()
-		{
-			_startGamePanel.visible = false;
-			_genericMessagePanel.visible = false;
-			_joiningPanel.visible = false;
-			_blockMask.visible = false;
-			_restartBtn.visible = false;
-		}
-
-		public function displayMessage(m)
+		private function displayMessage(m)
 		{
 			_genericMessagePanel.messageTF.text = m;
 			_genericMessagePanel.show();
 		}
 
-		public function restartBtnClickHandler(e:MouseEvent)
+		private function restartBtnClickHandler(e:MouseEvent)
 		{
-			_model.restartGame();
-			_model.sendMessage("restart");
+			_model.restartAllClients();
 		}
 	
-		public function startGame(block)
+		private function startGame(block)
 		{
-			_playField.visible = true;			
+			_playField.visible = true;	
+			_restartBtn.visible = false;		
 			if (block)
 				blockView();
 			else
 				unblockView();
 		}
 
-		public function cleanBoard()
+		private function cleanBoard()
 		{
 			for (var i:int = 0; i < 3; i++)
 			{
@@ -227,14 +239,14 @@ package
 			}
 		}
 
-		public function startGameClickHandler(e:MouseEvent)
+		private function startGameClickHandler(e:MouseEvent)
 		{
 		//	_blockAtStart = false;
 			_startGamePanel.show();
 			_model.startAsServer();
 		}
 		
-		public function joinGameClickHandler(e:MouseEvent)
+		private function joinGameClickHandler(e:MouseEvent)
 		{
 			_joiningPanel.visible = true;
 			stage.focus = _joiningPanel.keyTF;
@@ -242,45 +254,39 @@ package
 			
 			_model.joinGame();
 		}
-		
-		public function okBtnClickHandler(e:MouseEvent)
-		{
-			log.info(_joiningPanel.keyTF.text);
-			_model.setupIncomingStream(_joiningPanel.keyTF.text);
-		}
 
-		public function joiningCloseBtnClickHandler(e:MouseEvent)
+		private function joiningCloseBtnClickHandler(e:MouseEvent)
 		{
 			_joiningPanel.hide();
 		}
 
-		public function startGamePanelCloseBtnClickHandler(e:MouseEvent)
+		private function startGamePanelCloseBtnClickHandler(e:MouseEvent)
 		{
 			_startGamePanel.hide();
 		}
 
-		public function boardClickHandler(e:MouseEvent)
+		private function boardClickHandler(e:MouseEvent)
 		{
-			//e.target.visible = false;
 			_model.makeMove(e.target.name);
 		}
 
-		public function displayId(id)
+		private function displayId(id)
 		{
 			_startGamePanel.keyTF.text = id;
 			stage.focus = _startGamePanel.keyTF;
 			_startGamePanel.keyTF.setSelection( 0, _startGamePanel.keyTF.text.length);
 		}
 	
-		public function showPlayField()
+		private function showPlayField()
 		{
 			_startGamePanel.visible = false;
 			_joiningPanel.visible = false;
 			_menuPanel.visible = false;
 		}
 		
-		public function setTile(col, row, byMyself)
-		{log.info("setTile:"+col+","+row+","+byMyself);
+		private function setTile(col, row, byMyself)
+		{
+			log.debug("setTile:"+col+","+row+","+byMyself);
 			var tile = _boardTiles[col][row];
 			log.info("tile="+tile);
 			tile.visible = false;
@@ -301,29 +307,27 @@ package
 			toggleBlockState();
 		}
 
-		public function toggleBlockState()
+		private function toggleBlockState()
 		{
 			_blockMask.visible = !_blockMask.visible;
 			log.info("_blockMask.visible = "+_blockMask.visible);
-			_genericMessagePanel.messageTF.text="Waiting for opponent";
+			_genericMessagePanel.messageTF.text = "Waiting for opponent";
 			_genericMessagePanel.visible = _blockMask.visible;
 		}
 		
-		function blockView()
+		private function blockView()
 		{
-			_genericMessagePanel.messageTF.text = "Waiting for opponent";
-			_genericMessagePanel.visible = true;
+			displayMessage("Waiting for opponent");
 			_blockMask.visible = true;
 		}
 		
-		function unblockView()
+		private function unblockView()
 		{
 			_genericMessagePanel.visible = false;
 			_blockMask.visible = false;
 		}
-
 		
-		public function displayScore(v, d)
+		private function displayScore(v, d)
 		{
 			_scoreTF.text = v.toString()+":"+d.toString();
 		}

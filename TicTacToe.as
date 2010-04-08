@@ -36,6 +36,8 @@ package
 		public var _numberOfDefeats:Number = 0;
 		public var _playerId = -1;
 
+		//public methods
+		
 		public function TicTacToe()
 		{
 		}
@@ -44,7 +46,97 @@ package
 		{
 			_movesMade = 0;
 		}
-	
+		
+		public function startAsServer()
+		{
+			_playerId = 1;
+			setupConnection();
+		}
+
+		public function joinGame()
+		{
+			_playerId = 2;
+			_blockAtStart = true;
+			setupConnectionForJoining();
+		}
+		
+
+		public function setupConnectionForJoining():void
+		{
+			//SETUP CONNECTION TO STRATUS
+			log.info("Connecting");
+			_netConnection = new NetConnection();
+			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
+			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
+		}
+
+		public function restartAllClients()
+		{
+			sendMessage("restart");
+			restartGame();
+		}
+
+		public function receive(m):void
+		{
+			log.debug("received: "+m);
+
+			if (m == "restart")
+			{
+				restartGame();
+			}
+			else
+			{
+				var pos = m.indexOf(":");
+				var tileName = m.substring(pos + 1);
+				log.info("tile:"+tileName);
+				setTile(tileName, false);
+			}
+		}
+
+		public function makeMove(tileName)
+		{
+			setTile(tileName, true);
+			sendMessage("move:"+tileName);
+		}
+			
+		public function setupIncomingStream(id:String):void
+		{
+			if (id.length != 64)
+				throw new Error("peer ID is incorrect!");
+			if (_streamIncoming)
+				return;
+			
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			
+			_streamIncoming = new NetStream(_netConnection,id);
+			_streamIncoming.client = this;
+			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
+			_streamIncoming.play("TicTacToe");
+			//_video.attachNetStream(_streamIncoming);
+			dispatchEvent(new Event(TicTacToe.READY));
+		}
+
+		public function netStreamHandler(e:NetStatusEvent):void
+		{
+			if (e.target == _streamIncoming)
+			{
+				trace("Incoming NetStream Handler:",e.info.code);
+			}
+			if (e.target == _streamOutgoing)
+			{
+				trace("Outgoing NetStream Handler:",e.info.code);
+			}
+			if (e.info.code == "NetStream.Play.Start")
+			{
+				if (e.target == _streamOutgoing)
+				{
+					_streamOutgoing.send("|RtmpSampleAccess", true, true);
+					setTimeout(dispatchEvent, 1000, new Event(Event.CONNECT));
+				}
+			}
+		}
+		//private methods
+		
 		private function startGame()
 		{
 			log.debug("_playerId="+_playerId);
@@ -52,7 +144,7 @@ package
 			dispatchEvent(new StartEvent(TicTacToe.START_GAME, _blockAtStart));
 		}
 	
-		public function restartGame()
+		private function restartGame()
 		{
 			log.info("restarting game");
 			for (var i:int = 0; i < 3; i++)
@@ -64,26 +156,7 @@ package
 			startGame();
 		}
 
-		function startAsServer()
-		{
-			_playerId = 1;
-			setupConnection();
-		}
-	
-		function joinGame()
-		{
-			_playerId = 2;
-			_blockAtStart = true;
-			setupConnectionForJoining();
-		}
-	
-		public function makeMove(tileName)
-		{
-			setTile(tileName, true);
-			sendMessage("move:"+tileName);
-		}
-
-		protected function setupConnection():void
+		private function setupConnection():void
 		{
 			//SETUP CONNECTION TO STRATUS
 			log.info("Connecting");
@@ -91,17 +164,8 @@ package
 			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
 			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
 		}
-
-		protected function setupConnectionForJoining():void
-		{
-			//SETUP CONNECTION TO STRATUS
-			log.info("Connecting");
-			_netConnection = new NetConnection();
-			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
-			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
-		}
-
-		protected function netConnectionHandler(e:NetStatusEvent):void
+		
+		private function netConnectionHandler(e:NetStatusEvent):void
 		{
 			if (e.info.code == "NetConnection.Connect.Success")
 			{
@@ -110,7 +174,7 @@ package
 			}
 		}
 
-		protected function setupOutgoingStream(joining = false):void
+		private function setupOutgoingStream(joining = false):void
 		{
 			log.info("joining="+joining);
 			log.info('setting up outgoing stream');
@@ -134,66 +198,11 @@ package
 				dispatchEvent(new ServerReadyEvent(TicTacToe.SERVER_READY,_netConnection.nearID));
 		}
 
-		public function setupIncomingStream(id:String):void
-		{
-			if (id.length != 64)
-				throw new Error("peer ID is incorrect!");
-			if (_streamIncoming)
-				return;
-			
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			
-			_streamIncoming = new NetStream(_netConnection,id);
-			_streamIncoming.client = this;
-			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
-			_streamIncoming.play("TicTacToe");
-			//_video.attachNetStream(_streamIncoming);
-			dispatchEvent(new Event(TicTacToe.READY));
-		}
-
-		protected function netStreamHandler(e:NetStatusEvent):void
-		{
-			if (e.target == _streamIncoming)
-			{
-				trace("Incoming NetStream Handler:",e.info.code);
-			}
-			if (e.target == _streamOutgoing)
-			{
-				trace("Outgoing NetStream Handler:",e.info.code);
-			}
-			if (e.info.code == "NetStream.Play.Start")
-			{
-				if (e.target == _streamOutgoing)
-				{
-					_streamOutgoing.send("|RtmpSampleAccess", true, true);
-					setTimeout(dispatchEvent, 1000, new Event(Event.CONNECT));
-				}
-			}
-		}
-
-
-		public function sendMessage(m)
+		private function sendMessage(m)
 		{
 			_streamOutgoing.send("receive",m);
 		}
-
-		public function receive(m):void
-		{
-			log.debug("received: "+m);
-
-			if (m == "restart")
-			{
-				restartGame();
-			}
-			else
-			{
-				var pos = m.indexOf(":");
-				var tileName = m.substring(pos + 1);
-				log.info("tile:"+tileName);
-				setTile(tileName, false);
-			}
-		}
-
+		
 		private function setTile(tileName, byMyself)
 		{
 			log.info("tileName="+tileName);
@@ -209,7 +218,7 @@ package
 			checkBoard();
 		}
 		
-		function boardToString()
+		private function boardToString()
 		{
 			var s = "";
 			for (var i:int = 0; i < 3; i++)
@@ -232,7 +241,7 @@ package
 			return s;
 		}
 		
-		function getWinningPlayers()
+		private function getWinningPlayers()
 		{
 			var playersWin = [false,false];
 			for (var m:int = 0; m < 2; m++)
@@ -254,7 +263,7 @@ package
 			return playersWin;
 		}
 
-		function checkBoard()
+		private function checkBoard()
 		{
 			log.info("checking board");
 			log.debug(boardToString());
