@@ -12,6 +12,17 @@ package
 	{
 		protected var log:LogManager = LogManager.GetLogger();
 
+		public static var MOVE_MADE = "MOVE";
+		public static var RESULT_DEFEAT = "DEFEAT";
+		public static var RESULT_VICTORY = "VICTORY";
+		public static var RESULT_DRAW = "DRAW";
+		public static var RESULT_BOARD_FULL = "BOARD_FULL";
+		public static var START_GAME = "START";
+		public static var RESTART_GAME = "RESTART";
+		public static var GAME_OVER = "GAME_OVER";
+		public static var SERVER_READY = "SERVER_READY";
+		public static var READY = "READY";
+		
 		protected static const RTMFP_END_POINT:String = "rtmfp://stratus.adobe.com/";
 		protected static const ADOBE_DEV_KEY:String = "a212b33c2171391cb7a427ff-76077b3c37cd";
 
@@ -24,8 +35,6 @@ package
 		public var _numberOfVictories:Number = 0;
 		public var _numberOfDefeats:Number = 0;
 		public var _playerId = -1;
-		
-		var _view;
 
 		public function TicTacToe()
 		{
@@ -33,7 +42,6 @@ package
 		
 		public function init()
 		{
-			_view.init();
 			_movesMade = 0;
 		}
 	
@@ -41,7 +49,7 @@ package
 		{
 			log.debug("_playerId="+_playerId);
 			log.debug("_blockAtStart="+_blockAtStart);
-			_view.startGame(_blockAtStart);
+			dispatchEvent(new StartEvent(TicTacToe.START_GAME, _blockAtStart));
 		}
 	
 		public function restartGame()
@@ -51,7 +59,7 @@ package
 				for (var j:int = 0; j < 3; j++)
 					_board[i][j] = null;
 		
-			_view.cleanBoard();
+			dispatchEvent(new Event(TicTacToe.RESTART_GAME));
 			init();
 			startGame();
 		}
@@ -105,10 +113,9 @@ package
 		protected function setupOutgoingStream(joining = false):void
 		{
 			log.info("joining="+joining);
-			//SETUP OUTGOING STREAM
 			log.info('setting up outgoing stream');
 			_streamOutgoing = new NetStream(_netConnection,NetStream.DIRECT_CONNECTIONS);
-			//
+			
 			_streamOutgoing.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
 			var out:Object = new Object();
 			out.parent = this;
@@ -124,7 +131,7 @@ package
 			_streamOutgoing.publish("TicTacToe");
 
 			if (!joining)
-				_view.displayId(_netConnection.nearID);
+				dispatchEvent(new ServerReadyEvent(TicTacToe.SERVER_READY,_netConnection.nearID));
 		}
 
 		public function setupIncomingStream(id:String):void
@@ -133,15 +140,16 @@ package
 				throw new Error("peer ID is incorrect!");
 			if (_streamIncoming)
 				return;
-				
+			
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			
 			_streamIncoming = new NetStream(_netConnection,id);
 			_streamIncoming.client = this;
 			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
 			_streamIncoming.play("TicTacToe");
 			//_video.attachNetStream(_streamIncoming);
-			_view.showPlayField();
+			dispatchEvent(new Event(TicTacToe.READY));
 		}
-	
 
 		protected function netStreamHandler(e:NetStatusEvent):void
 		{
@@ -197,9 +205,10 @@ package
 			var mark = byMyself ? 1:0;
 			_board[row][col] = mark;
 			
-			_view.setTile(col, row, byMyself)
+			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, col, row, byMyself));
 			checkBoard();
 		}
+		
 		function boardToString()
 		{
 			var s = "";
@@ -250,38 +259,30 @@ package
 			log.info("checking board");
 			log.debug(boardToString());
 			var playersWin = getWinningPlayers()
-			var gameOver=false;
+			var gameOver = false;
+			var result;
+			
 			if (playersWin[0]  && playersWin[1])
 			{
-				//log.info("DRAW!");
-				_view.displayMessage("DRAW!");
-				gameOver=true;
 				_blockAtStart = !_blockAtStart;
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DRAW));
 			}
 			else if (playersWin[0])
 			{
-				_view.displayMessage("YOU LOOSE!");
-				_blockAtStart=false;
+				_blockAtStart = false;
 				_numberOfDefeats++;
-				gameOver=true;
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DEFEAT));
 			}
 			else if (playersWin[1])
 			{
-				_view.displayMessage("YOU WIN!");
-				_blockAtStart=true;
+				_blockAtStart = true;
 				_numberOfVictories++;
-				gameOver=true;
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_VICTORY));
 			}
 			else if (_movesMade == 9)
 			{
-				_view.displayMessage("NO WINNERS");
-				gameOver=true;
 				_blockAtStart = !_blockAtStart;
-			}
-
-			if (gameOver)
-			{
-				_view.onGameOver()
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_BOARD_FULL));
 			}
 		}
 	}

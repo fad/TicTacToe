@@ -4,6 +4,7 @@ package
 	import com.arkavis.ui.*;
 	
 	import flash.display.MovieClip;
+	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.text.TextField;
 
@@ -27,7 +28,63 @@ package
 		{
 			log.info("initializing view - model="+model);
 			_model = model;
+			_model.addEventListener(TicTacToe.GAME_OVER, onGameOver);
+			_model.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
+			_model.addEventListener(TicTacToe.SERVER_READY, onServerReady);
+			_model.addEventListener(TicTacToe.RESTART_GAME, onRestart);
+			_model.addEventListener(TicTacToe.START_GAME, onStart);
+			_model.addEventListener(TicTacToe.READY, onReady);
 			super();
+		}
+		
+		private function onGameOver(e:GameOverEvent)
+		{	
+			var message = "";
+			switch (e.result)
+			{
+				case TicTacToe.RESULT_BOARD_FULL:
+					message = "board full!";
+					break;
+				case TicTacToe.RESULT_DRAW:
+					message = "DRAW!";
+					break;
+				case TicTacToe.RESULT_VICTORY:
+					message = "YOU WIN!";
+					break;
+				case TicTacToe.RESULT_DEFEAT:
+					message = "YOU LOOSE!";
+					break;
+			}
+			displayMessage(message);
+			
+			_blockMask.visible = true;
+			_restartBtn.visible = true;
+			displayScore(_model._numberOfVictories, _model._numberOfDefeats);
+		}
+		
+		private function onServerReady(e:ServerReadyEvent)
+		{	
+			displayId(e.nearId);	
+		}
+		
+		private function onMoveMade(e:MoveMadeEvent)
+		{
+			this.setTile(e.column, e.row, e.byMyself);		
+		}
+		
+		private function onStart(e:StartEvent)
+		{
+			startGame(e.blockAtStart);
+		}
+		
+		private function onReady(e:Event)
+		{
+			this.showPlayField();
+		}
+		
+		private function onRestart(e:Event)
+		{
+			this.cleanBoard();
 		}
 		
 		public function buildUI()
@@ -220,7 +277,7 @@ package
 		}
 		
 		public function setTile(col, row, byMyself)
-		{
+		{log.info("setTile:"+col+","+row+","+byMyself);
 			var tile = _boardTiles[col][row];
 			log.info("tile="+tile);
 			tile.visible = false;
@@ -248,13 +305,7 @@ package
 			_genericMessagePanel.messageTF.text="Waiting for opponent";
 			_genericMessagePanel.visible = _blockMask.visible;
 		}
-		
-		public function onGameOver()
-		{
-			_blockMask.visible = true;
-			_restartBtn.visible = true;
-			displayScore(_model._numberOfVictories, _model._numberOfDefeats);
-		}
+
 		
 		public function displayScore(v, d)
 		{
