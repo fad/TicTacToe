@@ -74,6 +74,7 @@ package
 		
 		private function onStart(e:StartEvent)
 		{
+			log.debug("view - blockAtStart="+e.blockAtStart);
 			startGame(e.blockAtStart);
 		}
 		
@@ -206,7 +207,9 @@ package
 		{
 			_playField.visible = true;			
 			if (block)
-				toggleState();
+				blockView();
+			else
+				unblockView();
 		}
 
 		public function cleanBoard()
@@ -295,15 +298,28 @@ package
 			_playField.addChild(c);
 			c.name = "c" + col.toString() + row.toString();
 	
-			toggleState();
+			toggleBlockState();
 		}
 
-		public function toggleState()
+		public function toggleBlockState()
 		{
 			_blockMask.visible = !_blockMask.visible;
 			log.info("_blockMask.visible = "+_blockMask.visible);
 			_genericMessagePanel.messageTF.text="Waiting for opponent";
 			_genericMessagePanel.visible = _blockMask.visible;
+		}
+		
+		function blockView()
+		{
+			_genericMessagePanel.messageTF.text = "Waiting for opponent";
+			_genericMessagePanel.visible = true;
+			_blockMask.visible = true;
+		}
+		
+		function unblockView()
+		{
+			_genericMessagePanel.visible = false;
+			_blockMask.visible = false;
 		}
 
 		
