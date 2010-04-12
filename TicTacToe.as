@@ -7,7 +7,6 @@ package
 	import flash.events.*;
 	import flash.net.*;
 	import flash.utils.Timer;
-	import flash.utils.setTimeout;
 
 	public class TicTacToe extends EventDispatcher
 	{
@@ -25,12 +24,6 @@ package
 		public static var READY = "READY";
 		public static var JOINING = "JOINING";
 		
-		protected static const RTMFP_END_POINT:String = "rtmfp://stratus.adobe.com/";
-		protected static const ADOBE_DEV_KEY:String = "a212b33c2171391cb7a427ff-76077b3c37cd";
-
-		private var _netConnection:NetConnection;
-		private var _streamOutgoing:NetStream;
-		private var _streamIncoming:NetStream;
 		private var _movesMade:int;
 		private var _board = [[null,null,null],[null,null,null],[null,null,null]];
 		private var _blockAtStart = false;
@@ -39,6 +32,25 @@ package
 		public var _playerId:int = -1;
 
 		public var invitationCode:String = "";
+
+		public function set Connection(c:IConnection)
+		{
+			_connection = c;	
+			_connection.Model = this;
+			_connection.addEventListener(ConnectionStatus.READY, onConnectionReady);
+			_connection.addEventListener(ConnectionStatus.SERVER_READY, onConnectionServerReady);
+		}
+		var _connection:IConnection;
+
+		private function onConnectionReady(e:Event)
+		{
+			dispatchEvent(new Event(TicTacToe.READY));
+		}
+
+		private function onConnectionServerReady(e:ServerReadyEvent)
+		{
+			dispatchEvent(new ServerReadyEvent(TicTacToe.SERVER_READY,e.nearId));
+		}
 
 		//public methods
 		
@@ -72,7 +84,7 @@ package
 		{
 			_playerId = 1;
 			_blockAtStart = false;
-			setupConnection();
+			_connection.setupConnection();
 		}
 
 		public function joinGame()
@@ -85,39 +97,32 @@ package
 
 		public function setupConnectionForJoining():void
 		{
-			connection_setupConnectionForJoining();
+			_connection.setupConnectionForJoining();
 		}
 		
 		public function setupIncomingStream(id:String):void
 		{
-			connection_setupIncomingStream(id);
+			_connection.setupIncomingStream(id);
 		}
+		
+		//ok methods
 		
 		public function restartAllClients()
 		{
-			sendMessage("restart");
+			_connection.sendMessage("restart");
 			restartGame();
 		}
 
 		public function makeMove(tileName)
 		{
 			setTile(tileName, true);
-			sendMessage("move:"+tileName);
+			_connection.sendMessage("move:"+tileName);
 		}	
 		
-		private function connection_setupConnectionForJoining():void
-		{
-			//SETUP CONNECTION TO STRATUS
-			log.info("Connecting");
-			_netConnection = new NetConnection();
-			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
-			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
-		}
-
 	
 		//private methods
 		
-		private function startGame()
+		public function startGame()
 		{
 			log.info("starting game");
 			log.debug("_playerId="+_playerId);
@@ -125,7 +130,7 @@ package
 			dispatchEvent(new StartEvent(TicTacToe.START_GAME, _blockAtStart));
 		}
 	
-		private function restartGame()
+		public function restartGame()
 		{
 			log.info("restarting game");
 			for (var i:int = 0; i < 3; i++)
@@ -136,115 +141,8 @@ package
 			init();
 			startGame();
 		}
-
-//connection
-
-		public function receive(m):void
-		{
-			log.debug("received: "+m);
-
-			if (m == "restart")
-			{
-				restartGame();
-			}
-			else
-			{
-				var pos = m.indexOf(":");
-				var tileName = m.substring(pos + 1);
-				log.info("tile:"+tileName);
-				setTile(tileName, false);
-			}
-		}	
 		
-		private function setupConnection():void
-		{
-			//SETUP CONNECTION TO STRATUS
-			log.info("Connecting");
-			_netConnection = new NetConnection();
-			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
-			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
-		}
-		
-		private function connection_setupIncomingStream(id:String):void
-		{
-			log.debug("setupIncomingStream id="+id);
-			log.debug("_streamIncoming="+_streamIncoming);
-			log.debug("_netConnection="+_netConnection);
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			if (id.length != 64)
-				throw new Error("peer ID is incorrect!");
-			if (_streamIncoming)
-				return;
-			
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			
-			_streamIncoming = new NetStream(_netConnection,id);
-			_streamIncoming.client = this;
-			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
-			_streamIncoming.play("TicTacToe");
-			//_video.attachNetStream(_streamIncoming);
-			dispatchEvent(new Event(TicTacToe.READY));
-		}
-
-		private function netStreamHandler(e:NetStatusEvent):void
-		{
-			if (e.target == _streamIncoming)
-			{
-				trace("Incoming NetStream Handler:",e.info.code);
-			}
-			if (e.target == _streamOutgoing)
-			{
-				trace("Outgoing NetStream Handler:",e.info.code);
-			}
-			if (e.info.code == "NetStream.Play.Start")
-			{
-				if (e.target == _streamOutgoing)
-				{
-					_streamOutgoing.send("|RtmpSampleAccess", true, true);
-					setTimeout(dispatchEvent, 1000, new Event(Event.CONNECT));
-				}
-			}
-		}
-		
-		private function netConnectionHandler(e:NetStatusEvent):void
-		{
-			if (e.info.code == "NetConnection.Connect.Success")
-			{
-				log.info("_playerId="+_playerId);
-				setupOutgoingStream(_playerId == 2);
-			}
-		}
-
-		private function setupOutgoingStream(joining = false):void
-		{
-			log.info("joining="+joining);
-			log.info('setting up outgoing stream');
-			_streamOutgoing = new NetStream(_netConnection,NetStream.DIRECT_CONNECTIONS);
-			
-			_streamOutgoing.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
-			var out:Object = new Object();
-			out.parent = this;
-			out.onPeerConnect = function(subscriber:NetStream):Boolean 
-			{
-				log.info("Subscriber Connected:"+subscriber.farID);
-				this.parent.setupIncomingStream(subscriber.farID);
-				
-				startGame();
-				return true;
-			};
-			_streamOutgoing.client = out;
-			_streamOutgoing.publish("TicTacToe");
-
-			if (!joining)
-				dispatchEvent(new ServerReadyEvent(TicTacToe.SERVER_READY,_netConnection.nearID));
-		}
-
-		private function sendMessage(m)
-		{
-			_streamOutgoing.send("receive",m);
-		}
-		
-		private function setTile(tileName, byMyself)
+		public function setTile(tileName, byMyself)
 		{
 			log.info("tileName="+tileName);
 			_movesMade++;

@@ -17,6 +17,7 @@ package
 			var console:Console = new Console(consoleConfig);
 
 			var model = new TicTacToe();
+			model.Connection = new StratusConnection();
 			var view = new SimpleView(model);
 			addChild(view);
 			view.buildUI();

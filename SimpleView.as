@@ -6,7 +6,6 @@ package
 	import flash.display.MovieClip;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
-	import flash.text.TextField;
 
 	public class SimpleView extends MovieClip
 	{	
@@ -23,7 +22,7 @@ package
 		public var _scoreTF;
 		public var _scoresWidget;
 		public var _tileSize = 120;
-		public var _model;
+		public var _model:TicTacToe;
 		
 		public function SimpleView(model)
 		{
@@ -110,7 +109,7 @@ package
 		private function okBtnClickHandler(e:MouseEvent)
 		{
 			log.info(_joiningPanel.keyTF.text);
-			_model.setupIncomingStream(_joiningPanel.keyTF.text);
+			_model._connection.setupIncomingStream(_joiningPanel.keyTF.text);
 		}
 		
 		//public methods
