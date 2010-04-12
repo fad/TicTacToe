@@ -21,6 +21,7 @@ package
 		public var _restartBtn;
 		public var _menuPanel;
 		public var _scoreTF;
+		public var _scoresWidget;
 		public var _tileSize = 120;
 		public var _model;
 		
@@ -34,6 +35,7 @@ package
 			_model.addEventListener(TicTacToe.RESTART_GAME, onRestart);
 			_model.addEventListener(TicTacToe.START_GAME, onStart);
 			_model.addEventListener(TicTacToe.READY, onReady);
+			_model.addEventListener(TicTacToe.JOINING, onJoining);
 			super();
 		}
 		
@@ -61,7 +63,10 @@ package
 			
 			_blockMask.visible = true;
 			_restartBtn.visible = true;
-			displayScore(_model._numberOfVictories, _model._numberOfDefeats);
+			if (this._model._playerId == 1)
+				displayScore(_model._numberOfVictories, _model._numberOfDefeats);
+			else
+				displayScore(_model._numberOfDefeats, _model._numberOfVictories);
 		}
 		
 		private function onServerReady(e:ServerReadyEvent)
@@ -76,13 +81,25 @@ package
 		
 		private function onStart(e:StartEvent)
 		{
-			log.debug("view - blockAtStart="+e.blockAtStart);
-			startGame(e.blockAtStart);
+			log.info("onStart block="+e.blockAtStart); 
+			_playField.visible = true;	
+			_restartBtn.visible = false;
+			_scoresWidget.show();
+					
+			if (e.blockAtStart)
+				blockView();
+			else
+				unblockView();
 		}
 		
 		private function onReady(e:Event)
 		{
 			showPlayField();
+		}
+		
+		private function onJoining(e:Event)
+		{
+			this.displayMessage("Joining..");
 		}
 		
 		private function onRestart(e:Event)
@@ -133,13 +150,7 @@ package
 			_joiningPanel.keyTF.text = "";
 			addChild(_joiningPanel);
 			_joiningPanel.setPosition(StagePositions.CENTER);
-			
-			_scoreTF = new TextField();
-			_scoreTF.x = 300;
-			_scoreTF.y = 10;
-			_scoreTF.text = "0:0";
-			addChild(_scoreTF);
-			//_scoreTF.setPosition(StagePositions.CENTER_TOP);
+			_menuPanel.joinGameBtn.visible = false;
 		
 			_blockMask = new MovieClip();
 			_blockMask.graphics.beginFill(0xFF0000);  
@@ -154,6 +165,12 @@ package
 			_restartBtn.y = 400;
 			addChild(_restartBtn);
 			//_restartBtn.setPosition(StagePositions.CENTER);
+			
+			_scoresWidget = new ScoresWidget();
+			_scoresWidget.x = 10;
+			_scoresWidget.y = 400;
+			_scoresWidget.hide();
+			addChild(_scoresWidget);
 			
 			_menuPanel.startGameBtn.addEventListener(MouseEvent.CLICK, startGameClickHandler, false, 0, true);
 			_menuPanel.joinGameBtn.addEventListener(MouseEvent.CLICK, joinGameClickHandler, false, 0, true);
@@ -214,16 +231,6 @@ package
 			_model.restartAllClients();
 		}
 	
-		private function startGame(block)
-		{
-			_playField.visible = true;	
-			_restartBtn.visible = false;		
-			if (block)
-				blockView();
-			else
-				unblockView();
-		}
-
 		private function cleanBoard()
 		{
 			for (var i:int = 0; i < 3; i++)
@@ -272,7 +279,7 @@ package
 
 		private function displayId(id)
 		{
-			_startGamePanel.keyTF.text = id;
+			_startGamePanel.keyTF.text = "http://www.arkavis.com/TicTacToe/?invite="+id;
 			stage.focus = _startGamePanel.keyTF;
 			_startGamePanel.keyTF.setSelection( 0, _startGamePanel.keyTF.text.length);
 		}
@@ -329,6 +336,8 @@ package
 		
 		private function displayScore(v, d)
 		{
+			this._scoresWidget.player1ScoreTF.text = v.toString();
+			this._scoresWidget.player2ScoreTF.text = d.toString();
 			_scoreTF.text = v.toString()+":"+d.toString();
 		}
 	}

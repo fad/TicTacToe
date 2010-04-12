@@ -6,6 +6,7 @@ package
 	import flash.display.*;
 	import flash.events.*;
 	import flash.net.*;
+	import flash.utils.Timer;
 	import flash.utils.setTimeout;
 
 	public class TicTacToe extends EventDispatcher
@@ -22,6 +23,7 @@ package
 		public static var GAME_OVER = "GAME_OVER";
 		public static var SERVER_READY = "SERVER_READY";
 		public static var READY = "READY";
+		public static var JOINING = "JOINING";
 		
 		protected static const RTMFP_END_POINT:String = "rtmfp://stratus.adobe.com/";
 		protected static const ADOBE_DEV_KEY:String = "a212b33c2171391cb7a427ff-76077b3c37cd";
@@ -34,7 +36,9 @@ package
 		private var _blockAtStart = false;
 		public var _numberOfVictories:Number = 0;
 		public var _numberOfDefeats:Number = 0;
-		public var _playerId = -1;
+		public var _playerId:int = -1;
+
+		public var invitationCode:String = "";
 
 		//public methods
 		
@@ -45,11 +49,29 @@ package
 		public function init()
 		{
 			_movesMade = 0;
+			
+			if  (invitationCode != "")
+			{
+				dispatchEvent(new Event(TicTacToe.JOINING));
+				joinGame();
+				
+				var timer:Timer = new Timer(1000,1);
+				timer.addEventListener("timer", joinExistingGame);
+				timer.start();
+			}
+		}
+		
+		function joinExistingGame(e:TimerEvent)
+		{
+			log.info("JOINING: "+invitationCode);
+			setupIncomingStream(invitationCode);
+			invitationCode = "";
 		}
 		
 		public function startAsServer()
 		{
 			_playerId = 1;
+			_blockAtStart = false;
 			setupConnection();
 		}
 
@@ -101,6 +123,10 @@ package
 			
 		public function setupIncomingStream(id:String):void
 		{
+			log.debug("setupIncomingStream id="+id);
+			log.debug("_streamIncoming="+_streamIncoming);
+			log.debug("_netConnection="+_netConnection);
+			log.debug("_netConnection.connected="+_netConnection.connected);
 			if (id.length != 64)
 				throw new Error("peer ID is incorrect!");
 			if (_streamIncoming)
@@ -139,6 +165,7 @@ package
 		
 		private function startGame()
 		{
+			log.info("starting game");
 			log.debug("_playerId="+_playerId);
 			log.debug("_blockAtStart="+_blockAtStart);
 			dispatchEvent(new StartEvent(TicTacToe.START_GAME, _blockAtStart));
