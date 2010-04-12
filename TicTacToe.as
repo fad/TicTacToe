@@ -85,6 +85,28 @@ package
 
 		public function setupConnectionForJoining():void
 		{
+			connection_setupConnectionForJoining();
+		}
+		
+		public function setupIncomingStream(id:String):void
+		{
+			connection_setupIncomingStream(id);
+		}
+		
+		public function restartAllClients()
+		{
+			sendMessage("restart");
+			restartGame();
+		}
+
+		public function makeMove(tileName)
+		{
+			setTile(tileName, true);
+			sendMessage("move:"+tileName);
+		}	
+		
+		private function connection_setupConnectionForJoining():void
+		{
 			//SETUP CONNECTION TO STRATUS
 			log.info("Connecting");
 			_netConnection = new NetConnection();
@@ -92,75 +114,7 @@ package
 			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
 		}
 
-		public function restartAllClients()
-		{
-			sendMessage("restart");
-			restartGame();
-		}
-
-		public function receive(m):void
-		{
-			log.debug("received: "+m);
-
-			if (m == "restart")
-			{
-				restartGame();
-			}
-			else
-			{
-				var pos = m.indexOf(":");
-				var tileName = m.substring(pos + 1);
-				log.info("tile:"+tileName);
-				setTile(tileName, false);
-			}
-		}
-
-		public function makeMove(tileName)
-		{
-			setTile(tileName, true);
-			sendMessage("move:"+tileName);
-		}
-			
-		public function setupIncomingStream(id:String):void
-		{
-			log.debug("setupIncomingStream id="+id);
-			log.debug("_streamIncoming="+_streamIncoming);
-			log.debug("_netConnection="+_netConnection);
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			if (id.length != 64)
-				throw new Error("peer ID is incorrect!");
-			if (_streamIncoming)
-				return;
-			
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			
-			_streamIncoming = new NetStream(_netConnection,id);
-			_streamIncoming.client = this;
-			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
-			_streamIncoming.play("TicTacToe");
-			//_video.attachNetStream(_streamIncoming);
-			dispatchEvent(new Event(TicTacToe.READY));
-		}
-
-		public function netStreamHandler(e:NetStatusEvent):void
-		{
-			if (e.target == _streamIncoming)
-			{
-				trace("Incoming NetStream Handler:",e.info.code);
-			}
-			if (e.target == _streamOutgoing)
-			{
-				trace("Outgoing NetStream Handler:",e.info.code);
-			}
-			if (e.info.code == "NetStream.Play.Start")
-			{
-				if (e.target == _streamOutgoing)
-				{
-					_streamOutgoing.send("|RtmpSampleAccess", true, true);
-					setTimeout(dispatchEvent, 1000, new Event(Event.CONNECT));
-				}
-			}
-		}
+	
 		//private methods
 		
 		private function startGame()
@@ -183,6 +137,25 @@ package
 			startGame();
 		}
 
+//connection
+
+		public function receive(m):void
+		{
+			log.debug("received: "+m);
+
+			if (m == "restart")
+			{
+				restartGame();
+			}
+			else
+			{
+				var pos = m.indexOf(":");
+				var tileName = m.substring(pos + 1);
+				log.info("tile:"+tileName);
+				setTile(tileName, false);
+			}
+		}	
+		
 		private function setupConnection():void
 		{
 			//SETUP CONNECTION TO STRATUS
@@ -190,6 +163,47 @@ package
 			_netConnection = new NetConnection();
 			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
 			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
+		}
+		
+		private function connection_setupIncomingStream(id:String):void
+		{
+			log.debug("setupIncomingStream id="+id);
+			log.debug("_streamIncoming="+_streamIncoming);
+			log.debug("_netConnection="+_netConnection);
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			if (id.length != 64)
+				throw new Error("peer ID is incorrect!");
+			if (_streamIncoming)
+				return;
+			
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			
+			_streamIncoming = new NetStream(_netConnection,id);
+			_streamIncoming.client = this;
+			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
+			_streamIncoming.play("TicTacToe");
+			//_video.attachNetStream(_streamIncoming);
+			dispatchEvent(new Event(TicTacToe.READY));
+		}
+
+		private function netStreamHandler(e:NetStatusEvent):void
+		{
+			if (e.target == _streamIncoming)
+			{
+				trace("Incoming NetStream Handler:",e.info.code);
+			}
+			if (e.target == _streamOutgoing)
+			{
+				trace("Outgoing NetStream Handler:",e.info.code);
+			}
+			if (e.info.code == "NetStream.Play.Start")
+			{
+				if (e.target == _streamOutgoing)
+				{
+					_streamOutgoing.send("|RtmpSampleAccess", true, true);
+					setTimeout(dispatchEvent, 1000, new Event(Event.CONNECT));
+				}
+			}
 		}
 		
 		private function netConnectionHandler(e:NetStatusEvent):void
