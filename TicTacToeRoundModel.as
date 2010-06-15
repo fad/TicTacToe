@@ -86,8 +86,6 @@ package
 			log.info("model-checkBoard");
 			log.debug(boardToString());
 			var playersWin = getWinningPlayers()
-			var gameOver = false;
-			var result;
 			
 			if (playersWin[0]  && playersWin[1])
 			{
