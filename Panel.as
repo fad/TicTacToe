@@ -1,0 +1,1 @@
+﻿package{	import flash.display.Sprite;		public class Panel extends Sprite	{		public function Panel()		{		}	}}
