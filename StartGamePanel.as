@@ -1,12 +1,1 @@
-package
-{
-	import com.arkavis.ui.Panel;
-	
-	public class StartGamePanel extends Panel
-	{
-		public function StartGamePanel()
-		{
-		}
-
-	}
-}
+﻿package{	import com.arkavis.ui.Widget;		public class StartGamePanel extends Widget	{		public function StartGamePanel()		{		}	}}

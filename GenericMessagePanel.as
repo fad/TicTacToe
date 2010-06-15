@@ -1,11 +1,1 @@
-package
-{
-	import com.arkavis.ui.Panel;
-	public class GenericMessagePanel extends Panel
-	{
-		public function GenericMessagePanel()
-		{
-		}
-
-	}
-}
+﻿package{	import com.arkavis.ui.Widget;	public class GenericMessagePanel extends Widget	{		public function GenericMessagePanel()		{		}	}}

@@ -17,10 +17,10 @@ package
 		private var _streamOutgoing:NetStream;
 		private var _streamIncoming:NetStream;
 		
-		var model;
-		public function set Model(m):void
+		var game;
+		public function set Game(g):void
 		{
-			model = m;
+			game = g;
 		}
 		
 		public function StratusConnection()
@@ -35,28 +35,6 @@ package
 			_netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
 			_netConnection.connect(RTMFP_END_POINT + ADOBE_DEV_KEY + "/");
 		}
-		
-		public function setupIncomingStream(id:String):void
-		{
-			log.debug("setupIncomingStream id="+id);
-			log.debug("_streamIncoming="+_streamIncoming);
-			log.debug("_netConnection="+_netConnection);
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			if (id.length != 64)
-				throw new Error("peer ID is incorrect!");
-			if (_streamIncoming)
-				return;
-			
-			log.debug("_netConnection.connected="+_netConnection.connected);
-			
-			_streamIncoming = new NetStream(_netConnection,id);
-			_streamIncoming.client = this;
-			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
-			_streamIncoming.play("TicTacToe");
-			//_video.attachNetStream(_streamIncoming);
-			dispatchEvent(new Event(ConnectionStatus.READY));
-		}
-
 		
 		public function netStreamHandler(e:NetStatusEvent):void
 		{
@@ -91,8 +69,8 @@ package
 		{
 			if (e.info.code == "NetConnection.Connect.Success")
 			{
-				log.info("_playerId="+model._playerId);
-				setupOutgoingStream(model._playerId == 2);
+				log.info("_playerId="+game._playerId);
+				setupOutgoingStream(game._playerId == 2);
 			}
 		}
 
@@ -110,7 +88,7 @@ package
 				log.info("Subscriber Connected:"+subscriber.farID);
 				this.parent.setupIncomingStream(subscriber.farID);
 				
-				model.startGame();
+				game.startGame();
 				return true;
 			};
 			_streamOutgoing.client = out;
@@ -118,6 +96,28 @@ package
 
 			if (!joining)
 				dispatchEvent(new ServerReadyEvent(ConnectionStatus.SERVER_READY,_netConnection.nearID));
+		}
+		
+		
+		public function setupIncomingStream(id:String):void
+		{
+			log.debug("setupIncomingStream id="+id);
+			log.debug("_streamIncoming="+_streamIncoming);
+			log.debug("_netConnection="+_netConnection);
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			if (id.length != 64)
+				throw new Error("peer ID is incorrect!");
+			if (_streamIncoming)
+				return;
+			
+			log.debug("_netConnection.connected="+_netConnection.connected);
+			
+			_streamIncoming = new NetStream(_netConnection,id);
+			_streamIncoming.client = this;
+			_streamIncoming.addEventListener(NetStatusEvent.NET_STATUS, netStreamHandler, false, 0, true);
+			_streamIncoming.play("TicTacToe");
+			//_video.attachNetStream(_streamIncoming);
+			dispatchEvent(new Event(ConnectionStatus.READY));
 		}
 
 		public function sendMessage(m:Object):void
@@ -131,14 +131,14 @@ package
 
 			if (m == "restart")
 			{
-				model.restartGame();
+				game.restartGame();
 			}
 			else
 			{
 				var pos = m.indexOf(":");
 				var tileName = m.substring(pos + 1);
 				log.info("tile:"+tileName);
-				model.setTile(tileName, false);
+				game.setTile(tileName, false);
 			}
 		}	
 

@@ -7,6 +7,7 @@ package
 	import flash.events.*;
 	import flash.net.*;
 	import flash.utils.Timer;
+	import flash.external.ExternalInterface;
 
 	public class TicTacToe extends EventDispatcher
 	{
@@ -24,19 +25,21 @@ package
 		public static var READY = "READY";
 		public static var JOINING = "JOINING";
 		
-		private var _movesMade:int;
-		private var _board = [[null,null,null],[null,null,null],[null,null,null]];
 		private var _blockAtStart = false;
 		public var _numberOfVictories:Number = 0;
 		public var _numberOfDefeats:Number = 0;
 		public var _playerId:int = -1;
 
 		public var invitationCode:String = "";
+		public var invitationBaseUrl:String = "";
+		public var gameId:String = "";
+		
+		private var model:TicTacToeModel;
 
 		public function set Connection(c:IConnection)
 		{
 			_connection = c;	
-			_connection.Model = this;
+			_connection.Game = this;
 			_connection.addEventListener(ConnectionStatus.READY, onConnectionReady);
 			_connection.addEventListener(ConnectionStatus.SERVER_READY, onConnectionServerReady);
 		}
@@ -49,6 +52,7 @@ package
 
 		private function onConnectionServerReady(e:ServerReadyEvent)
 		{
+			ExternalInterface.call("sendGameId",e.nearId);
 			dispatchEvent(new ServerReadyEvent(TicTacToe.SERVER_READY,e.nearId));
 		}
 
@@ -56,12 +60,57 @@ package
 		
 		public function TicTacToe()
 		{
+			model = new TicTacToeModel();
+			model.addEventListener(TicTacToeModel.GAME_OVER, onGameOver);
+			model.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
+		}
+		
+		private function onMoveMade(e:MoveMadeEvent)
+		{
+			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, e.column, e.row, e.byMyself));
+		}
+		private function onGameOver(e:GameOverEvent)
+		{
+			log.info("onGameOver - Result = "+e.result);
+			switch (e.result)
+			{
+				case TicTacToeModel.RESULT_BOARD_FULL:
+					_blockAtStart = !_blockAtStart;
+					dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_BOARD_FULL));
+					break;
+				case TicTacToeModel.RESULT_DRAW:
+					_blockAtStart = !_blockAtStart;
+					dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DRAW));
+					break;
+				case TicTacToeModel.RESULT_PLAYER_ONE_WINS:
+					addToScore([1,0]);
+					break;
+				case TicTacToeModel.RESULT_PLAYER_TWO_WINS:
+					addToScore([0,1]);
+					break;
+			}
+		}
+		
+		private function addToScore(playerWins:Array)
+		{
+			if(playerWins[_playerId])
+			{
+				_blockAtStart = true;
+				_numberOfVictories++;
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_VICTORY));
+			}
+			else
+			{
+				_blockAtStart = false;
+				_numberOfDefeats++;
+				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DEFEAT));
+			}
 		}
 		
 		public function init()
 		{
-			_movesMade = 0;
-			
+			model.reset();
+	
 			if  (invitationCode != "")
 			{
 				dispatchEvent(new Event(TicTacToe.JOINING));
@@ -133,9 +182,7 @@ package
 		public function restartGame()
 		{
 			log.info("restarting game");
-			for (var i:int = 0; i < 3; i++)
-				for (var j:int = 0; j < 3; j++)
-					_board[i][j] = null;
+			model.reset();
 		
 			dispatchEvent(new Event(TicTacToe.RESTART_GAME));
 			init();
@@ -145,93 +192,23 @@ package
 		public function setTile(tileName, byMyself)
 		{
 			log.info("tileName="+tileName);
-			_movesMade++;
+
 			var row = tileName.substring(1,2);
 			var col = tileName.substring(2);
 
 			log.info("t="+tileName+",r="+row+",c="+col);
 			var mark = byMyself ? 1:0;
-			_board[row][col] = mark;
-			
-			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, col, row, byMyself));
-			checkBoard();
-		}
-		
-		private function boardToString()
-		{
-			var s = "";
-			for (var i:int = 0; i < 3; i++)
+			//model._board[row][col] = mark;
+			if (byMyself)
+				model.setTile(row,col,_playerId);
+			else
 			{
-				for (var j:int = 0; j < 3; j++)
-				{
-					var c = "_";
-					if (_board[i][j] == 1)
-					{
-						c = "x";
-					}
-					if (_board[i][j] == 0)
-					{
-						c = "o";
-					}
-					s += c;
-				}
-				s+="\n";
+				var enemyId = (_playerId == 0) ? 1 : 0;
+				model.setTile(row,col,enemyId);
 			}
-			return s;
-		}
-		
-		private function getWinningPlayers()
-		{
-			var playersWin = [false,false];
-			for (var m:int = 0; m < 2; m++)
-			{
-				var currentPlayerWins=false;
-				for (var i:int = 0; i < 3; i++)
-					if ((_board[i][0] == m) && (_board[i][1] == m) && (_board[i][2] == m))
-						currentPlayerWins=true;
-				for (var j:int = 0; j < 3; j++)
-					if ((_board[0][j] == m) && (_board[1][j] == m) && (_board[2][j] == m))
-						currentPlayerWins=true;
-				if ((_board[0][0] == m) && (_board[1][1] == m) && (_board[2][2] == m))
-					currentPlayerWins=true;
-				if ((_board[2][0] == m) && (_board[1][1] == m) && (_board[0][2] == m))
-					currentPlayerWins=true;
 				
-				playersWin[m] = currentPlayerWins;
-			}
-			return playersWin;
+			//model.checkBoard();
 		}
-
-		private function checkBoard()
-		{
-			log.info("checking board");
-			log.debug(boardToString());
-			var playersWin = getWinningPlayers()
-			var gameOver = false;
-			var result;
-			
-			if (playersWin[0]  && playersWin[1])
-			{
-				_blockAtStart = !_blockAtStart;
-				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DRAW));
-			}
-			else if (playersWin[0])
-			{
-				_blockAtStart = false;
-				_numberOfDefeats++;
-				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DEFEAT));
-			}
-			else if (playersWin[1])
-			{
-				_blockAtStart = true;
-				_numberOfVictories++;
-				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_VICTORY));
-			}
-			else if (_movesMade == 9)
-			{
-				_blockAtStart = !_blockAtStart;
-				dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_BOARD_FULL));
-			}
-		}
+		
 	}
 }

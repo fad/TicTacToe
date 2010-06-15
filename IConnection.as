@@ -8,7 +8,7 @@ package
 	{	
 		function sendMessage(m:Object):void
 		function receive(m:Object):void
-		function set Model(m):void
+		function set Game(g):void
 
 		function setupConnectionForJoining():void
 		function setupIncomingStream(id:String):void;

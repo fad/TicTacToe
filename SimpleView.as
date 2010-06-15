@@ -2,6 +2,7 @@ package
 {
 	import com.arkavis.log4as.*;
 	import com.arkavis.ui.*;
+	import com.arkavis.UrlHelper;
 	
 	import flash.display.MovieClip;
 	import flash.events.Event;
@@ -28,8 +29,8 @@ package
 		{
 			log.info("initializing view - model = "+model);
 			_model = model;
-			_model.addEventListener(TicTacToe.GAME_OVER, onGameOver);
 			_model.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
+			_model.addEventListener(TicTacToe.GAME_OVER, onGameOver);
 			_model.addEventListener(TicTacToe.SERVER_READY, onServerReady);
 			_model.addEventListener(TicTacToe.RESTART_GAME, onRestart);
 			_model.addEventListener(TicTacToe.START_GAME, onStart);
@@ -42,6 +43,7 @@ package
 		
 		private function onGameOver(e:GameOverEvent)
 		{	
+			log.debug("view-onGameOver");
 			var message = "";
 			switch (e.result)
 			{
@@ -75,6 +77,7 @@ package
 		
 		private function onMoveMade(e:MoveMadeEvent)
 		{
+			log.debug("view-onMoveMade");
 			setTile(e.column, e.row, e.byMyself);		
 		}
 		
@@ -109,13 +112,13 @@ package
 		private function okBtnClickHandler(e:MouseEvent)
 		{
 			log.info(_joiningPanel.keyTF.text);
-			_model._connection.setupIncomingStream(_joiningPanel.keyTF.text);
+			_model.setupIncomingStream(_joiningPanel.keyTF.text);
 		}
 		
 		//public methods
 		
 		public function init()
-		{
+		{log.info("1111");
 			_startGamePanel.visible = false;
 			_genericMessagePanel.visible = false;
 			_joiningPanel.visible = false;
@@ -220,9 +223,9 @@ package
 		}
 
 		private function displayMessage(m)
-		{
+		{	
 			_genericMessagePanel.messageTF.text = m;
-			_genericMessagePanel.show();
+			_genericMessagePanel.visible = true;
 		}
 
 		private function restartBtnClickHandler(e:MouseEvent)
@@ -278,7 +281,8 @@ package
 
 		private function displayId(id)
 		{
-			_startGamePanel.keyTF.text = "http://www.arkavis.com/TicTacToe/?invite="+id;
+			_startGamePanel.keyTF.text = UrlHelper.createUrl(_model.invitationBaseUrl,{invite:id, game:_model.gameId});
+			// _model.invitationBaseUrl+"?invite="+id+"&game="+_model.gameId; 
 			stage.focus = _startGamePanel.keyTF;
 			_startGamePanel.keyTF.setSelection( 0, _startGamePanel.keyTF.text.length);
 		}
@@ -337,7 +341,6 @@ package
 		{
 			this._scoresWidget.player1ScoreTF.text = v.toString();
 			this._scoresWidget.player2ScoreTF.text = d.toString();
-			_scoreTF.text = v.toString()+":"+d.toString();
 		}
 	}
 }
