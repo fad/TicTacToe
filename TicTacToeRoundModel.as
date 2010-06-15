@@ -4,7 +4,7 @@ package
 	
 	import flash.events.EventDispatcher;
 	
-	public class TicTacToeModel extends EventDispatcher
+	public class TicTacToeRoundModel extends EventDispatcher
 	{
 		public static var GAME_OVER = "GAME_OVER";
 		public static var RESULT_PLAYER_ONE_WINS = "RESULT_PLAYER_ONE_WINS";
@@ -17,7 +17,7 @@ package
 		protected var _board = [[null,null,null],[null,null,null],[null,null,null]];
 		protected var _movesMade:int = 0;
 		
-		public function TicTacToeModel()
+		public function TicTacToeRoundModel()
 		{
 		}
 
@@ -91,19 +91,19 @@ package
 			
 			if (playersWin[0]  && playersWin[1])
 			{
-				dispatchEvent(new GameOverEvent(TicTacToeModel.GAME_OVER, TicTacToeModel.RESULT_DRAW));
+				dispatchEvent(new GameOverEvent(TicTacToeRoundModel.GAME_OVER, TicTacToeRoundModel.RESULT_DRAW));
 			}
 			else if (playersWin[0])
 			{
-				dispatchEvent(new GameOverEvent(TicTacToeModel.GAME_OVER, TicTacToeModel.RESULT_PLAYER_ONE_WINS));
+				dispatchEvent(new GameOverEvent(TicTacToeRoundModel.GAME_OVER, TicTacToeRoundModel.RESULT_PLAYER_ONE_WINS));
 			}
 			else if (playersWin[1])
 			{
-				dispatchEvent(new GameOverEvent(TicTacToeModel.GAME_OVER, TicTacToeModel.RESULT_PLAYER_TWO_WINS));
+				dispatchEvent(new GameOverEvent(TicTacToeRoundModel.GAME_OVER, TicTacToeRoundModel.RESULT_PLAYER_TWO_WINS));
 			}
 			else if (_movesMade == 9)
 			{
-				dispatchEvent(new GameOverEvent(TicTacToeModel.GAME_OVER, TicTacToeModel.RESULT_BOARD_FULL));
+				dispatchEvent(new GameOverEvent(TicTacToeRoundModel.GAME_OVER, TicTacToeRoundModel.RESULT_BOARD_FULL));
 			}
 		}
 	}

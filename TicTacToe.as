@@ -2,6 +2,7 @@ package
 {
 	import com.arkavis.log4as.*;
 	import com.arkavis.ui.*;
+	import com.arkavis.game.*;
 	
 	import flash.display.*;
 	import flash.events.*;
@@ -9,7 +10,7 @@ package
 	import flash.utils.Timer;
 	import flash.external.ExternalInterface;
 
-	public class TicTacToe extends EventDispatcher
+	public class TicTacToe extends TurnBasedGame
 	{
 		protected var log:LogManager = LogManager.GetLogger();
 
@@ -34,7 +35,7 @@ package
 		public var invitationBaseUrl:String = "";
 		public var gameId:String = "";
 		
-		private var model:TicTacToeModel;
+		private var _roundModel:TicTacToeRoundModel;
 
 		public function set Connection(c:IConnection)
 		{
@@ -60,32 +61,33 @@ package
 		
 		public function TicTacToe()
 		{
-			model = new TicTacToeModel();
-			model.addEventListener(TicTacToeModel.GAME_OVER, onGameOver);
-			model.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
+			_roundModel = new TicTacToeRoundModel();
+			_roundModel.addEventListener(TicTacToeRoundModel.GAME_OVER, onGameOver);
+			_roundModel.addEventListener(TicTacToe.MOVE_MADE, onMoveMade);
 		}
 		
 		private function onMoveMade(e:MoveMadeEvent)
 		{
 			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, e.column, e.row, e.byMyself));
 		}
+		
 		private function onGameOver(e:GameOverEvent)
 		{
 			log.info("onGameOver - Result = "+e.result);
 			switch (e.result)
 			{
-				case TicTacToeModel.RESULT_BOARD_FULL:
+				case TicTacToeRoundModel.RESULT_BOARD_FULL:
 					_blockAtStart = !_blockAtStart;
 					dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_BOARD_FULL));
 					break;
-				case TicTacToeModel.RESULT_DRAW:
+				case TicTacToeRoundModel.RESULT_DRAW:
 					_blockAtStart = !_blockAtStart;
 					dispatchEvent(new GameOverEvent(TicTacToe.GAME_OVER, TicTacToe.RESULT_DRAW));
 					break;
-				case TicTacToeModel.RESULT_PLAYER_ONE_WINS:
+				case TicTacToeRoundModel.RESULT_PLAYER_ONE_WINS:
 					addToScore([1,0]);
 					break;
-				case TicTacToeModel.RESULT_PLAYER_TWO_WINS:
+				case TicTacToeRoundModel.RESULT_PLAYER_TWO_WINS:
 					addToScore([0,1]);
 					break;
 			}
@@ -109,7 +111,7 @@ package
 		
 		public function init()
 		{
-			model.reset();
+			_roundModel.reset();
 	
 			if  (invitationCode != "")
 			{
@@ -142,7 +144,6 @@ package
 			_blockAtStart = true;
 			setupConnectionForJoining();
 		}
-		
 
 		public function setupConnectionForJoining():void
 		{
@@ -167,8 +168,7 @@ package
 			setTile(tileName, true);
 			_connection.sendMessage("move:"+tileName);
 		}	
-		
-	
+
 		//private methods
 		
 		public function startGame()
@@ -182,7 +182,7 @@ package
 		public function restartGame()
 		{
 			log.info("restarting game");
-			model.reset();
+			_roundModel.reset();
 		
 			dispatchEvent(new Event(TicTacToe.RESTART_GAME));
 			init();
@@ -198,16 +198,14 @@ package
 
 			log.info("t="+tileName+",r="+row+",c="+col);
 			var mark = byMyself ? 1:0;
-			//model._board[row][col] = mark;
+			
 			if (byMyself)
-				model.setTile(row,col,_playerId);
+				_roundModel.setTile(row,col,_playerId);
 			else
 			{
 				var enemyId = (_playerId == 0) ? 1 : 0;
-				model.setTile(row,col,enemyId);
+				_roundModel.setTile(row,col,enemyId);
 			}
-				
-			//model.checkBoard();
 		}
 		
 	}
