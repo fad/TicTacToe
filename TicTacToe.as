@@ -68,7 +68,7 @@ package
 		
 		private function onMoveMade(e:MoveMadeEvent)
 		{
-			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, e.column, e.row, e.byMyself));
+			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, e.column, e.row, (e.byMyself == _playerId)));
 		}
 		
 		private function onGameOver(e:GameOverEvent)
@@ -95,7 +95,7 @@ package
 		
 		private function addToScore(playerWins:Array)
 		{
-			if(playerWins[_playerId])
+			if(playerWins[_playerId-1])
 			{
 				_blockAtStart = true;
 				_numberOfVictories++;
@@ -203,7 +203,7 @@ package
 				_roundModel.setTile(row,col,_playerId);
 			else
 			{
-				var enemyId = (_playerId == 0) ? 1 : 0;
+				var enemyId = (_playerId == 2) ? 1 : 2;
 				_roundModel.setTile(row,col,enemyId);
 			}
 		}

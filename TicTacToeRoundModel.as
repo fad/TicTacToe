@@ -29,7 +29,7 @@ package
 
 		public function setTile(row:Number, col:Number, playerId:Number)
 		{		
-			log.debug("model-setTile");	
+			log.debug("model-setTile: ",row,col,playerId);
 			_movesMade++;
 			_board[row][col] = playerId;	
 			dispatchEvent(new MoveMadeEvent(TicTacToe.MOVE_MADE, col, row, playerId));
@@ -48,7 +48,7 @@ package
 					{
 						c = "x";
 					}
-					if (_board[i][j] == 0)
+					if (_board[i][j] == 2)
 					{
 						c = "o";
 					}
@@ -62,7 +62,7 @@ package
 		private function getWinningPlayers():Array
 		{
 			var playersWin = [false,false];
-			for (var m:int = 0; m < 2; m++)
+			for (var m:int = 1; m <= 2; m++)
 			{
 				var currentPlayerWins=false;
 				for (var i:int = 0; i < 3; i++)
@@ -76,7 +76,7 @@ package
 				if ((_board[2][0] == m) && (_board[1][1] == m) && (_board[0][2] == m))
 					currentPlayerWins=true;
 				
-				playersWin[m] = currentPlayerWins;
+				playersWin[m-1] = currentPlayerWins;
 			}
 			return playersWin;
 		}

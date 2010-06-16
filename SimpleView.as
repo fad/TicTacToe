@@ -43,7 +43,7 @@ package
 		
 		private function onGameOver(e:GameOverEvent)
 		{	
-			log.debug("view-onGameOver");
+			log.debug("view-onGameOver - result = "+e.result);
 			var message = "";
 			switch (e.result)
 			{
